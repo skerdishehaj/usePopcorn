@@ -48,14 +48,13 @@ const tempWatchedData = [
 ];
 
 const average = (arr) =>
-  arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
+  arr.reduce((acc, cur, _, arr) => acc + cur / arr.length, 0);
 
-const NavBar = ({ moviesQty }) => {
+const NavBar = ({ children }) => {
   return (
     <nav className="nav-bar">
       <Logo />
-      <Search />
-      <NumResults moviesQty={moviesQty} />
+      {children}
     </nav>
   );
 };
@@ -90,28 +89,20 @@ const Search = () => {
   );
 };
 
-const Main = ({ movies }) => {
-  return (
-    <main className="main">
-      <ListBox movies={movies} />
-      <WatchedBox />
-    </main>
-  );
+const Main = ({ children }) => {
+  return <main className="main">{children}</main>;
 };
 
-const ListBox = ({ movies }) => {
-  const [isOpen1, setIsOpen1] = useState(true);
+const Box = ({ children }) => {
+  const [isOpen, setIsOpen] = useState(true);
 
   return (
     <div className="box">
-      <button
-        className="btn-toggle"
-        onClick={() => setIsOpen1((open) => !open)}
-      >
-        {isOpen1 ? "–" : "+"}
+      <button className="btn-toggle" onClick={() => setIsOpen((open) => !open)}>
+        {isOpen ? "–" : "+"}
       </button>
 
-      {isOpen1 && <MovieList movies={movies} />}
+      {isOpen && children}
     </div>
   );
 };
@@ -140,9 +131,9 @@ const Movie = ({ movie }) => {
   );
 };
 
-const WatchedBox = () => {
-  const [watched, setWatched] = useState(tempWatchedData);
+/* const WatchedBox = () => {
   const [isOpen2, setIsOpen2] = useState(true);
+  const [watched, setWatched] = useState(tempWatchedData);
 
   return (
     <div className="box">
@@ -161,7 +152,7 @@ const WatchedBox = () => {
       )}
     </div>
   );
-};
+}; */
 
 const WatchedMovieList = ({ watched }) => {
   return (
@@ -227,10 +218,24 @@ const WatchedSummary = ({ watched }) => {
 
 export default function App() {
   const [movies, setMovies] = useState(tempMovieData);
+  const [watched, setWatched] = useState(tempWatchedData);
+
   return (
     <>
-      <NavBar moviesQty={movies.length} />
-      <Main movies={movies} />
+      <NavBar>
+        <Search />
+        <NumResults moviesQty={movies.length} />
+      </NavBar>
+
+      <Main>
+        <Box>
+          <MovieList movies={movies} />
+        </Box>
+        <Box>
+          <WatchedSummary watched={watched} />
+          <WatchedMovieList watched={watched} />
+        </Box>
+      </Main>
     </>
   );
 }
