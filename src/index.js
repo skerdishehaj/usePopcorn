@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 // import App from "./App";
 // import StarRating from "./components/StarRating";
-import App from "./App-v1";
+import App from "./App";
 
 /* const Test = () => {
   const [rate, setRate] = useState(0);
