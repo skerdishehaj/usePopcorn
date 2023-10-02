@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import StarRating from "./components/StarRating";
 
 const tempMovieData = [
   {
@@ -76,8 +77,7 @@ const Logo = () => {
   );
 };
 
-const Search = () => {
-  const [query, setQuery] = useState("");
+const Search = ({ query, setQuery }) => {
   return (
     <input
       className="search"
@@ -107,18 +107,22 @@ const Box = ({ children }) => {
   );
 };
 
-const MovieList = ({ movies }) => {
+const MovieList = ({ movies, onSelectMovie }) => {
   return (
-    <ul className="list">
+    <ul className="list list-movies">
       {movies?.map((movie) => (
-        <Movie key={movie.imdbID} movie={movie} />
+        <Movie onSelectMovie={onSelectMovie} key={movie.imdbID} movie={movie} />
       ))}
     </ul>
   );
 };
-const Movie = ({ movie }) => {
+const Movie = ({ movie, onSelectMovie }) => {
   return (
-    <li>
+    <li
+      onClick={() => {
+        onSelectMovie(movie.imdbID);
+      }}
+    >
       <img src={movie.Poster} alt={`${movie.Title} poster`} />
       <h3>{movie.Title}</h3>
       <div>
@@ -215,6 +219,111 @@ const WatchedSummary = ({ watched }) => {
     </div>
   );
 };
+
+const Loader = () => {
+  return (
+    <p className="loader">
+      <span role="img">🍿</span>
+      Loading...
+    </p>
+  );
+};
+
+const ErrorMessage = ({ msg }) => {
+  return (
+    <p className="error">
+      <span role="img">🔴</span>
+      {msg}
+    </p>
+  );
+};
+
+const MovieDetail = ({ selectedId, onCloseMovie }) => {
+  const [movie, setMovie] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const {
+    Title: title,
+    Year: year,
+    Poster: poster,
+    imdbRating,
+    Runtime: runtime,
+    Plot: plot,
+    Director: director,
+    Released: released,
+    Genre: genre,
+    Actors: actors,
+  } = movie || {};
+
+  async function fetchMovieDetails(id) {
+    try {
+      setIsLoading(true);
+      setError(""); // reset error
+      const res = await fetch(`http://www.omdbapi.com/?i=${id}&apikey=${KEY}`);
+
+      if (!res.ok)
+        throw new Error(
+          `Something went wrong with fetching movie details: ${res.status}`
+        );
+
+      const movieData = await res.json();
+      if (movieData.Response === "False") throw new Error(`${movieData.Error}`);
+
+      console.table(movieData);
+
+      setMovie(movieData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+  useEffect(() => {
+    fetchMovieDetails(selectedId);
+  }, [selectedId]);
+
+  return (
+    <div className="details">
+      {isLoading ? (
+        <Loader />
+      ) : error ? (
+        <ErrorMessage msg={error} />
+      ) : (
+        <>
+          <header>
+            <button className="btn-back" onClick={onCloseMovie}>
+              &larr;
+            </button>
+            <img src={poster} alt={`Poster of ${title} movie.`} />
+            <div className="details-overview">
+              <h2>{title}</h2>
+              <p>
+                {released} &bull; {runtime}
+              </p>
+              <p>{genre}</p>
+              <p>
+                <span>⭐</span>
+                {imdbRating}
+              </p>
+            </div>
+          </header>
+          <section>
+            <div className="rating">
+              <StarRating maxRating={10} size={2.5} />
+            </div>
+            <p>
+              <em>{plot}</em>
+            </p>
+            <p>Starring {actors}</p>
+            <p>Directed by {director}</p>
+          </section>
+        </>
+      )}
+    </div>
+  );
+};
+
 const KEY = "a5c707e8";
 
 export default function App() {
@@ -222,10 +331,21 @@ export default function App() {
   const [watched, setWatched] = useState(tempWatchedData);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState(null);
 
-  async function getMovies(query) {
+  const handleSelectMovie = (id) => {
+    setSelectedId((prevId) => (prevId === id ? null : id));
+  };
+
+  const handleCloseMovie = () => {
+    setSelectedId(null);
+  };
+
+  async function fetchMovies(query) {
     try {
       setIsLoading(true);
+      setError(""); // reset error
       const res = await fetch(
         `http://www.omdbapi.com/?s=${query}&apikey=${KEY}`
       );
@@ -239,6 +359,8 @@ export default function App() {
       if (moviesData.Response === "False")
         throw new Error(`${moviesData.Error}`);
 
+      console.table(moviesData.Search);
+
       setMovies(moviesData.Search);
     } catch (err) {
       setError(err.message);
@@ -248,13 +370,17 @@ export default function App() {
   }
 
   useEffect(() => {
-    getMovies("Matrix");
-  }, []);
+    if (query.length < 3) {
+      setMovies([]);
+      return;
+    }
+    fetchMovies(query);
+  }, [query]);
 
   return (
     <>
       <NavBar>
-        <Search />
+        <Search query={query} setQuery={setQuery} />
         <NumResults moviesQty={movies.length} />
       </NavBar>
 
@@ -265,34 +391,27 @@ export default function App() {
           ) : error ? (
             <ErrorMessage msg={error} />
           ) : (
-            <MovieList movies={movies} />
+            <MovieList onSelectMovie={handleSelectMovie} movies={movies} />
           )}
           {/* {isLoading && <Loader />}
           {!isLoading && !error && <MovieList movies={movies} />}
           {error && <ErrorMessage msg={error} />} */}
         </Box>
         <Box>
-          <WatchedSummary watched={watched} />
-          <WatchedMovieList watched={watched} />
+          {selectedId ? (
+            <MovieDetail
+              key={selectedId}
+              onCloseMovie={handleCloseMovie}
+              selectedId={selectedId}
+            />
+          ) : (
+            <>
+              <WatchedSummary watched={watched} />
+              <WatchedMovieList watched={watched} />
+            </>
+          )}
         </Box>
       </Main>
     </>
   );
 }
-
-const Loader = () => {
-  return (
-    <p className="loader">
-      <span role="img">🍿</span>
-      Loading...
-    </p>
-  );
-};
-const ErrorMessage = ({ msg }) => {
-  return (
-    <p className="error">
-      <span role="img">🔴</span>
-      {msg}
-    </p>
-  );
-};
