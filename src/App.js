@@ -315,6 +315,19 @@ const MovieDetails = ({ selectedId, onCloseMovie, onAddWatched, watched }) => {
     fetchMovieDetails(selectedId);
   }, [selectedId]);
 
+  useEffect(() => {
+    if (title) {
+      document.title = title;
+    }
+    // The clean up runs after the component has been unmounted AND after each re-render, so how does the function knows the title
+    // and does not return undefined?
+    // This happens due to Closures, the time the function was created the title variable had that sepcific value.
+    return () => {
+      document.title = "usePopcorn";
+      console.log(title);
+    };
+  }, [title]);
+
   return (
     <div className="details">
       {isLoading ? (
