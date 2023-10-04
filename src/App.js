@@ -288,11 +288,14 @@ const MovieDetails = ({ selectedId, onCloseMovie, onAddWatched, watched }) => {
     onCloseMovie();
   };
 
-  async function fetchMovieDetails(id) {
+  async function fetchMovieDetails(id, controller) {
     try {
       setIsLoading(true);
       setError(""); // reset error
-      const res = await fetch(`http://www.omdbapi.com/?i=${id}&apikey=${KEY}`);
+      const res = await fetch(
+        `http://www.omdbapi.com/?i=${id}&apikey=${KEY}`,
+        controller
+      );
 
       if (!res.ok)
         throw new Error(
@@ -305,14 +308,19 @@ const MovieDetails = ({ selectedId, onCloseMovie, onAddWatched, watched }) => {
       console.table(movieData);
 
       setMovie(movieData);
+      setError("");
     } catch (err) {
-      setError(err.message);
+      if (err.name !== "AbortError") setError(err.message);
     } finally {
       setIsLoading(false);
     }
   }
   useEffect(() => {
-    fetchMovieDetails(selectedId);
+    const controller = new AbortController();
+    fetchMovieDetails(selectedId, { signal: controller.signal });
+    return () => {
+      controller.abort();
+    };
   }, [selectedId]);
 
   useEffect(() => {
@@ -412,12 +420,13 @@ export default function App() {
     setSelectedId(null);
   };
 
-  async function fetchMovies(query) {
+  async function fetchMovies(query, controller) {
     try {
       setIsLoading(true);
       setError(""); // reset error
       const res = await fetch(
-        `http://www.omdbapi.com/?s=${query}&apikey=${KEY}`
+        `http://www.omdbapi.com/?s=${query}&apikey=${KEY}`,
+        controller
       );
 
       if (!res.ok)
@@ -432,19 +441,25 @@ export default function App() {
       console.table(moviesData.Search);
 
       setMovies(moviesData.Search);
+      setError("");
     } catch (err) {
-      setError(err.message);
+      if (err.name !== "AbortError") setError(err.message);
     } finally {
       setIsLoading(false);
     }
   }
 
   useEffect(() => {
+    const controller = new AbortController();
     if (query.length < 3) {
       setMovies([]);
       return;
     }
-    fetchMovies(query);
+
+    fetchMovies(query, { signal: controller.signal });
+    return () => {
+      controller.abort();
+    };
   }, [query]);
 
   return (
