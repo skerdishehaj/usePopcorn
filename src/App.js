@@ -193,7 +193,6 @@ const WatchedMovie = ({ movie, onDeleteWatchedMovie }) => {
         <button
           className="btn-delete"
           onClick={() => {
-            console.log(movie.imdbID);
             onDeleteWatchedMovie(movie.imdbID);
           }}
         >
@@ -257,6 +256,7 @@ const MovieDetails = ({ selectedId, onCloseMovie, onAddWatched, watched }) => {
   const [error, setError] = useState("");
   const [userRating, setUserRating] = useState(null);
   const isWatched = watched.some((movie) => movie.imdbID === selectedId);
+ 
   const userRatingFromWatched = watched.find(
     (movie) => movie.imdbID === selectedId
   )?.userRating;
@@ -288,13 +288,12 @@ const MovieDetails = ({ selectedId, onCloseMovie, onAddWatched, watched }) => {
     onCloseMovie();
   };
 
-  async function fetchMovieDetails(id, controller) {
+  async function fetchMovieDetails(id) {
     try {
       setIsLoading(true);
       setError(""); // reset error
       const res = await fetch(
         `http://www.omdbapi.com/?i=${id}&apikey=${KEY}`,
-        controller
       );
 
       if (!res.ok)
@@ -305,7 +304,6 @@ const MovieDetails = ({ selectedId, onCloseMovie, onAddWatched, watched }) => {
       const movieData = await res.json();
       if (movieData.Response === "False") throw new Error(`${movieData.Error}`);
 
-      console.table(movieData);
 
       setMovie(movieData);
       setError("");
@@ -316,11 +314,7 @@ const MovieDetails = ({ selectedId, onCloseMovie, onAddWatched, watched }) => {
     }
   }
   useEffect(() => {
-    const controller = new AbortController();
-    fetchMovieDetails(selectedId, { signal: controller.signal });
-    return () => {
-      controller.abort();
-    };
+    fetchMovieDetails(selectedId);
   }, [selectedId]);
 
   useEffect(() => {
@@ -332,9 +326,21 @@ const MovieDetails = ({ selectedId, onCloseMovie, onAddWatched, watched }) => {
     // This happens due to Closures, the time the function was created the title variable had that sepcific value.
     return () => {
       document.title = "usePopcorn";
-      console.log(title);
     };
   }, [title]);
+
+  useEffect(() => {
+    const callback = (e) => {
+      if (e.code === "Escape") {
+        onCloseMovie();
+      }
+    };
+    document.addEventListener("keydown", callback);
+    return () => {
+      // eslint-disable-next-line no-restricted-globals
+      removeEventListener("keydown", callback);
+    };
+  }, [onCloseMovie]);
 
   return (
     <div className="details">
@@ -438,7 +444,6 @@ export default function App() {
       if (moviesData.Response === "False")
         throw new Error(`${moviesData.Error}`);
 
-      console.table(moviesData.Search);
 
       setMovies(moviesData.Search);
       setError("");
@@ -456,7 +461,9 @@ export default function App() {
       return;
     }
 
+    handleCloseMovie();
     fetchMovies(query, { signal: controller.signal });
+
     return () => {
       controller.abort();
     };
