@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-// import App from "./App";
-// import StarRating from "./components/StarRating";
 import App from './App';
+// import StarRating from "./components/StarRating";
+// import App from './useGeolocate-challenge/App';
 
 /* const Test = () => {
   const [rate, setRate] = useState(0);
