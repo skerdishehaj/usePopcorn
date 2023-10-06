@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import StarRating from './components/StarRating';
 import { useMovies } from './useMovies';
 import { useLocalStorageState } from './useLocalStorageState';
+import { useKey } from './useKey';
 
 const tempMovieData = [
   {
@@ -82,23 +83,11 @@ const Logo = () => {
 const Search = ({ query, setQuery }) => {
   const inputEl = useRef(null);
 
-  useEffect(() => {
-    const callback = (e) => {
-      if (document.activeElement === inputEl.current) return;
-
-      if (e.code === 'Enter') {
-        inputEl.current.focus();
-        setQuery('');
-      }
-    };
-
-    document.addEventListener('keydown', callback);
-
-    return () => {
-      // eslint-disable-next-line no-restricted-globals
-      removeEventListener('keydown', callback);
-    };
-  }, [setQuery]);
+  useKey('Enter', () => {
+    if (document.activeElement === inputEl.current) return;
+    inputEl.current.focus();
+    setQuery('');
+  });
 
   return (
     <input
@@ -365,18 +354,7 @@ const MovieDetails = ({ selectedId, onCloseMovie, onAddWatched, watched }) => {
     };
   }, [title]);
 
-  useEffect(() => {
-    const callback = (e) => {
-      if (e.code === 'Escape') {
-        onCloseMovie();
-      }
-    };
-    document.addEventListener('keydown', callback);
-    return () => {
-      // eslint-disable-next-line no-restricted-globals
-      removeEventListener('keydown', callback);
-    };
-  }, [onCloseMovie]);
+  useKey('Escape', onCloseMovie);
 
   useEffect(() => {
     if (userRating === null) return;
